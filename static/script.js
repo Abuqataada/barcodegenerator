@@ -1,335 +1,257 @@
 class PartyApp {
     constructor() {
         this.cameraStream = null;
-        this.currentImage = null;
+        this.currentImageData = null;
+
+        this.data = JSON.parse(localStorage.getItem("party_data")) || {
+            invites: [],      // {name, code, image}
+            checkins: []      // {code, name, time}
+        };
+
         this.init();
     }
 
-    async init() {
+    init() {
         this.setupTabs();
         this.setupEvents();
-        await this.loadStats();
-        
-        // Request camera permission early
-        this.requestCameraPermission();
+        this.updateStats();
+        this.preloadCameraPermission();
     }
 
+    saveData() {
+        localStorage.setItem("party_data", JSON.stringify(this.data));
+    }
+
+    /* --------------------------
+       TAB HANDLING
+    --------------------------- */
     setupTabs() {
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const tab = e.target.closest('.tab-btn').dataset.tab;
+        document.querySelectorAll(".tab-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const tab = btn.dataset.tab;
                 this.switchTab(tab);
             });
         });
     }
 
-    switchTab(tabName) {
-        // Update tabs
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.tab === tabName);
-        });
-        
-        // Show content
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.toggle('active', content.id === `${tabName}-tab`);
-        });
-        
-        // Stop camera if leaving scan tab
-        if (tabName !== 'scan') {
-            this.stopCamera();
-            this.hideCamera();
-        }
+    switchTab(tab) {
+        document.querySelectorAll(".tab-btn").forEach(btn =>
+            btn.classList.toggle("active", btn.dataset.tab === tab)
+        );
+
+        document.querySelectorAll(".tab-content").forEach(c =>
+            c.classList.toggle("active", c.id === `${tab}-tab`)
+        );
+
+        if (tab !== "scan") this.stopCamera();
     }
 
+    /* --------------------------
+       GENERAL UI HELPERS
+    --------------------------- */
+    toast(msg, type = "info") {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.className = `toast show ${type}`;
+        setTimeout(() => t.classList.remove("show"), 2500);
+    }
+
+    updateStats() {
+        document.getElementById("generated-count").textContent = this.data.invites.length;
+        document.getElementById("scanned-count").textContent  = this.data.checkins.length;
+    }
+
+    /* --------------------------
+       CAMERA PERMISSION
+    --------------------------- */
+    async preloadCameraPermission() {
+        try { await navigator.mediaDevices.getUserMedia({ video: true }); }
+        catch (_) {}
+    }
+
+    /* --------------------------
+       GENERATE BARCODE
+    --------------------------- */
     setupEvents() {
-        // Generate tab
-        document.getElementById('generateBtn').onclick = () => this.generateBarcode();
-        document.getElementById('downloadBtn').onclick = () => this.downloadImage();
-        document.getElementById('newBtn').onclick = () => this.resetGenerator();
-        
-        // Scan tab
-        document.getElementById('cameraBtn').onclick = () => this.startCamera();
-        document.getElementById('manualBtn').onclick = () => this.showManual();
-        document.getElementById('captureBtn').onclick = () => this.capturePhoto();
-        document.getElementById('checkBtn').onclick = () => this.checkManual();
-        document.getElementById('fileInput').onchange = (e) => this.handleFileUpload(e);
+        document.getElementById("generateBtn").onclick = () => this.generate();
+        document.getElementById("newBtn").onclick      = () => this.resetGenerator();
+        document.getElementById("downloadBtn").onclick = () => this.downloadImage();
+
+        document.getElementById("cameraBtn").onclick   = () => this.startCamera();
+        document.getElementById("manualBtn").onclick   = () => this.showManual();
+        document.getElementById("captureBtn").onclick  = () => this.captureFrame();
+        document.getElementById("checkBtn").onclick    = () => this.checkManual();
+
+        document.getElementById("fileInput").onchange  = e => this.uploadImage(e);
     }
 
-    async requestCameraPermission() {
+    generate() {
+        const name = document.getElementById("staffName").value.trim();
+        if (!name) return this.toast("Enter staff name", "warning");
+
+        const code = "ARD_" + Math.random().toString(36).substring(2, 10).toUpperCase();
+
+        // Generate barcode using bwip-js
+        const canvas = document.createElement("canvas");
         try {
-            // Just check if we can get camera (don't start it yet)
-            await navigator.mediaDevices.getUserMedia({ video: true });
-            console.log('Camera permission granted');
-        } catch (err) {
-            console.warn('Camera permission not granted yet:', err);
+            bwipjs.toCanvas(canvas, {
+                bcid: "code128",
+                text: code,
+                scale: 3,
+                height: 10
+            });
+        } catch(e) {
+            return this.toast("Barcode generation failed", "error");
         }
+
+        const imageData = canvas.toDataURL("image/png");
+
+        this.data.invites.push({ name, code, image: imageData });
+        this.saveData();
+        this.updateStats();
+
+        document.getElementById("generatedBarcode").src = imageData;
+        document.getElementById("resultStaffName").textContent = name;
+        document.getElementById("resultCode").textContent = code;
+
+        this.currentImageData = imageData;
+
+        document.getElementById("result-card").classList.remove("hidden");
+        this.toast("Invitation Created", "success");
     }
 
+    resetGenerator() {
+        document.getElementById("staffName").value = "";
+        document.getElementById("result-card").classList.add("hidden");
+        this.currentImageData = null;
+    }
+
+    downloadImage() {
+        if (!this.currentImageData) return;
+
+        const a = document.createElement("a");
+        a.href = this.currentImageData;
+        a.download = "invite.png";
+        a.click();
+    }
+
+    /* --------------------------
+       CAMERA SCANNING
+    --------------------------- */
     async startCamera() {
         try {
             this.stopCamera();
-            this.hideManual();
-            
-            const constraints = {
-                video: {
-                    facingMode: 'environment',
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                }
-            };
-            
-            this.cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
-            const video = document.getElementById('camera');
+            const video = document.getElementById("camera");
+            this.cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }});
             video.srcObject = this.cameraStream;
-            
-            document.getElementById('camera-box').classList.remove('hidden');
-            this.showToast('Camera ready. Point at barcode.', 'success');
-            
-        } catch (err) {
-            console.error('Camera error:', err);
-            this.showToast('Camera access denied. Use manual entry or upload.', 'error');
+
+            document.getElementById("camera-box").classList.remove("hidden");
+            document.getElementById("manual-box").classList.add("hidden");
+        } catch (e) {
+            this.toast("Cannot access camera", "error");
             this.showManual();
         }
     }
 
     stopCamera() {
         if (this.cameraStream) {
-            this.cameraStream.getTracks().forEach(track => track.stop());
+            this.cameraStream.getTracks().forEach(t => t.stop());
             this.cameraStream = null;
         }
+        document.getElementById("camera-box").classList.add("hidden");
     }
 
-    hideCamera() {
-        document.getElementById('camera-box').classList.add('hidden');
-    }
-
-    showManual() {
-        this.stopCamera();
-        this.hideCamera();
-        document.getElementById('manual-box').classList.remove('hidden');
-        document.getElementById('manualCode').focus();
-    }
-
-    hideManual() {
-        document.getElementById('manual-box').classList.add('hidden');
-    }
-
-    capturePhoto() {
-        const video = document.getElementById('camera');
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
+    captureFrame() {
+        const video = document.getElementById("camera");
+        const canvas = document.createElement("canvas");
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        const imageData = canvas.toDataURL('image/jpeg');
-        this.scanImage(imageData);
+        canvas.getContext("2d").drawImage(video, 0, 0);
+
+        this.scanImage(canvas);
     }
 
-    async scanImage(imageData) {
-        const btn = document.getElementById('captureBtn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
-        btn.disabled = true;
-        
-        try {
-            const response = await fetch('/scan', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image_data: imageData })
-            });
-            
-            const result = await response.json();
-            this.handleScanResult(result);
-            
-        } catch (error) {
-            this.showToast('Scan failed. Try again.', 'error');
-        } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
-    }
-
-    handleFileUpload(event) {
-        const file = event.target.files[0];
+    /* --------------------------
+       IMAGE SCANNING (JSQR)
+    --------------------------- */
+    async uploadImage(ev) {
+        const file = ev.target.files[0];
         if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            this.scanImage(e.target.result);
+
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            this.scanImage(canvas);
         };
-        reader.readAsDataURL(file);
+        img.src = URL.createObjectURL(file);
     }
 
-    async checkManual() {
-        const code = document.getElementById('manualCode').value.trim();
-        if (!code) {
-            this.showToast('Please enter a code', 'warning');
+    scanImage(canvas) {
+        const ctx = canvas.getContext("2d");
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        const qr = jsQR(imageData.data, canvas.width, canvas.height);
+        if (!qr) return this.toast("No code detected", "warning");
+
+        this.validateCode(qr.data);
+    }
+
+    /* --------------------------
+       VALIDATION (LOCAL)
+    --------------------------- */
+    validateCode(code) {
+        const invite = this.data.invites.find(i => i.code === code);
+        const resultsDiv = document.getElementById("results");
+
+        if (!invite) {
+            this.toast("Invalid Code", "error");
             return;
         }
-        
-        const btn = document.getElementById('checkBtn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
-        btn.disabled = true;
-        
-        try {
-            const response = await fetch(`/validate/${encodeURIComponent(code)}`);
-            const result = await response.json();
-            this.handleScanResult(result);
-            document.getElementById('manualCode').value = '';
-        } catch (error) {
-            this.showToast('Check failed. Try again.', 'error');
-        } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
-    }
 
-    handleScanResult(result) {
-        if (!result.success) {
-            this.showToast(result.error, 'error');
-            return;
-        }
-        
-        this.addResult(result);
-        this.loadStats();
-        
-        if (result.valid) {
-            this.showToast('Access granted!', 'success');
-        } else {
-            this.showToast('Invalid code', 'warning');
-        }
-    }
+        // Record check-in
+        this.data.checkins.push({
+            code,
+            name: invite.name,
+            time: new Date().toLocaleTimeString()
+        });
+        this.saveData();
+        this.updateStats();
 
-    addResult(result) {
-        const resultsDiv = document.getElementById('results');
-        const item = document.createElement('div');
-        item.className = `result-item result-${result.status}`;
-        
-        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        
+        const item = document.createElement("div");
+        item.className = "result-item result-success";
         item.innerHTML = `
-            <div style="font-weight: bold; margin-bottom: 5px;">
-                ${result.message}
-            </div>
-            ${result.staff_name ? `<div>Name: ${result.staff_name}</div>` : ''}
-            <div style="font-size: 0.8rem; color: #666; margin-top: 5px;">${time}</div>
+            <strong>${invite.name}</strong><br>
+            Code: ${invite.code}<br>
+            <small>${new Date().toLocaleTimeString()}</small>
         `;
-        
-        resultsDiv.insertBefore(item, resultsDiv.firstChild);
-        
-        // Keep only last 10 results
-        while (resultsDiv.children.length > 10) {
-            resultsDiv.removeChild(resultsDiv.lastChild);
-        }
+        resultsDiv.prepend(item);
+
+        this.toast("Access Granted", "success");
     }
 
-    async generateBarcode() {
-        const name = document.getElementById('staffName').value.trim();
-        if (!name) {
-            this.showToast('Please enter name', 'warning');
-            return;
-        }
-        
-        const btn = document.getElementById('generateBtn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
-        btn.disabled = true;
-        
-        try {
-            const response = await fetch('/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ staff_name: name })
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                this.showBarcode(result);
-                this.showToast('Barcode created!', 'success');
-                this.loadStats();
-            } else {
-                this.showToast(result.error, 'error');
-            }
-        } catch (error) {
-            this.showToast('Creation failed', 'error');
-        } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
+    /* --------------------------
+       MANUAL ENTRY
+    --------------------------- */
+    showManual() {
+        this.stopCamera();
+        document.getElementById("manual-box").classList.remove("hidden");
+        document.getElementById("manualCode").focus();
     }
 
-    showBarcode(result) {
-        document.getElementById('generatedBarcode').src = result.image_data;
-        document.getElementById('resultStaffName').textContent = result.staff_name;
-        document.getElementById('resultCode').textContent = result.code;
-        
-        this.currentImage = result.filename;
-        document.getElementById('result-card').classList.remove('hidden');
-    }
-
-    async downloadImage() {
-        if (!this.currentImage) return;
-        
-        try {
-            const response = await fetch(`/download/${this.currentImage}`);
-            if (response.ok) {
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = this.currentImage;
-                document.body.appendChild(a);
-                a.click();
-                URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-                this.showToast('Image saved!', 'success');
-            }
-        } catch (error) {
-            this.showToast('Download failed', 'error');
-        }
-    }
-
-    resetGenerator() {
-        document.getElementById('staffName').value = '';
-        document.getElementById('result-card').classList.add('hidden');
-        this.currentImage = null;
-    }
-
-    async loadStats() {
-        try {
-            const response = await fetch('/stats');
-            const stats = await response.json();
-            
-            document.getElementById('generated-count').textContent = stats.generated;
-            document.getElementById('scanned-count').textContent = stats.scanned;
-        } catch (error) {
-            console.error('Stats error:', error);
-        }
-    }
-
-    showToast(message, type = 'info') {
-        const toast = document.getElementById('toast');
-        toast.textContent = message;
-        toast.className = `toast show ${type}`;
-        
-        setTimeout(() => {
-            toast.classList.remove('show');
-        }, 3000);
+    checkManual() {
+        const code = document.getElementById("manualCode").value.trim();
+        if (!code) return this.toast("Enter a code", "warning");
+        this.validateCode(code);
+        document.getElementById("manualCode").value = "";
     }
 }
 
-// Initialize app
-document.addEventListener('DOMContentLoaded', () => {
+/* --------------------------
+   INIT APP
+--------------------------- */
+document.addEventListener("DOMContentLoaded", () => {
     window.app = new PartyApp();
-    
-    // Enable PWA features
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/service-worker.js')
-            .then(() => console.log('Service Worker registered'))
-            .catch(err => console.log('SW registration failed:', err));
-    }
 });

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Arndale Academy Party</title>
+
+    <link rel="stylesheet" href="static/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Barcode + QR libraries -->
+    <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
+    <script src="https://unpkg.com/bwip-js/dist/bwip-js-min.js"></script>
+
+</head>
+
+<body>
+<div class="app-container">
+
+    <!-- HEADER -->
+    <header class="app-header">
+        <h1><i class="fas fa-glass-cheers"></i> Arndale Party</h1>
+
+        <div class="stats">
+            <div class="stat">
+                <span class="stat-num" id="generated-count">0</span>
+                <span class="stat-label">Invites</span>
+            </div>
+            <div class="stat">
+                <span class="stat-num" id="scanned-count">0</span>
+                <span class="stat-label">Checked In</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- TABS -->
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="generate">
+            <i class="fas fa-plus-circle"></i> Create
+        </button>
+
+        <button class="tab-btn" data-tab="scan">
+            <i class="fas fa-camera"></i> Scan
+        </button>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main class="content">
+
+        <!-- ============================ GENERATE TAB ============================ -->
+        <section id="generate-tab" class="tab-content active">
+
+            <div class="card">
+                <h2><i class="fas fa-user-plus"></i> Create Invitation</h2>
+
+                <div class="form-group">
+                    <input type="text"
+                           id="staffName"
+                           class="input"
+                           placeholder="Enter staff name">
+                </div>
+
+                <button id="generateBtn" class="btn btn-create">
+                    <i class="fas fa-qrcode"></i> Create Barcode
+                </button>
+            </div>
+
+            <div id="result-card" class="card hidden">
+                <h2><i class="fas fa-check"></i> Invitation Ready</h2>
+
+                <div class="barcode-box">
+                    <img id="generatedBarcode" class="barcode" alt="Generated Barcode">
+                </div>
+
+                <div class="info">
+                    <p><strong>Name: </strong><span id="resultStaffName"></span></p>
+                    <p><strong>Code: </strong><code id="resultCode"></code></p>
+                </div>
+
+                <div class="actions">
+                    <button id="downloadBtn" class="btn btn-download">
+                        <i class="fas fa-download"></i> Save Image
+                    </button>
+
+                    <button id="newBtn" class="btn btn-new">
+                        <i class="fas fa-plus"></i> New Invite
+                    </button>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ============================ SCAN TAB ============================ -->
+        <section id="scan-tab" class="tab-content">
+
+            <div class="card">
+                <h2><i class="fas fa-door-open"></i> Check In</h2>
+
+                <div class="scan-options">
+                    <button id="cameraBtn" class="btn btn-scan">
+                        <i class="fas fa-camera"></i> Use Camera
+                    </button>
+
+                    <button id="manualBtn" class="btn btn-manual">
+                        <i class="fas fa-keyboard"></i> Manual Code
+                    </button>
+                </div>
+
+                <!-- CAMERA UI -->
+                <div id="camera-box" class="camera-box hidden">
+                    <div class="camera-container">
+                        <video id="camera" autoplay playsinline></video>
+                        <div class="scan-guide"></div>
+                    </div>
+
+                    <button id="captureBtn" class="btn btn-capture">
+                        <i class="fas fa-circle"></i> Scan Now
+                    </button>
+                </div>
+
+                <!-- MANUAL ENTRY UI -->
+                <div id="manual-box" class="manual-box hidden">
+                    <input type="text"
+                           id="manualCode"
+                           class="input"
+                           placeholder="Enter code (e.g., ARD_XXXXXX)">
+
+                    <button id="checkBtn" class="btn btn-check">
+                        <i class="fas fa-check"></i> Verify Code
+                    </button>
+                </div>
+
+                <!-- UPLOAD OPTION -->
+                <div class="upload-option">
+                    <label class="btn btn-upload">
+                        <i class="fas fa-upload"></i> Upload Photo
+                        <input type="file" id="fileInput" accept="image/*" hidden>
+                    </label>
+                </div>
+            </div>
+
+            <!-- RESULTS FEED -->
+            <div id="results" class="results"></div>
+
+        </section>
+
+    </main>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="toast"></div>
+
+</div>
+
+<script src="static/script.js"></script>
+</body>
+</html>

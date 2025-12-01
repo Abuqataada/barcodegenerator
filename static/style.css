@@ -1,0 +1,379 @@
+:root {
+    --primary: #4361ee;
+    --success: #06d6a0;
+    --warning: #ffd166;
+    --danger: #ef476f;
+    --dark: #1a1a2e;
+    --light: #f8f9fa;
+    --gray: #6c757d;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--light);
+    color: var(--dark);
+    line-height: 1.6;
+}
+
+.app-container {
+    max-width: 100%;
+    min-height: 100vh;
+    background: white;
+}
+
+/* Header */
+.app-header {
+    background: linear-gradient(135deg, var(--primary), #3a0ca3);
+    color: white;
+    padding: 20px 15px;
+    text-align: center;
+}
+
+.app-header h1 {
+    font-size: 1.4rem;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.stats {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+}
+
+.stat {
+    text-align: center;
+}
+
+.stat-num {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--success);
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    background: white;
+    border-bottom: 1px solid #e0e0e0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 15px;
+    border: none;
+    background: none;
+    color: var(--gray);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+}
+
+.tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    font-weight: 600;
+}
+
+/* Content */
+.content {
+    padding: 20px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+/* Cards */
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    border: 1px solid #e8e8e8;
+}
+
+.card h2 {
+    margin-bottom: 20px;
+    color: var(--dark);
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Forms */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.input {
+    width: 100%;
+    padding: 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* Buttons */
+.btn {
+    padding: 15px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-create {
+    background: linear-gradient(135deg, var(--primary), #3a0ca3);
+    color: white;
+}
+
+.btn-download {
+    background: var(--success);
+    color: white;
+}
+
+.btn-new {
+    background: white;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+}
+
+.btn-scan {
+    background: linear-gradient(135deg, #7209b7, #4361ee);
+    color: white;
+}
+
+.btn-manual {
+    background: linear-gradient(135deg, var(--warning), #f3722c);
+    color: white;
+}
+
+.btn-capture, .btn-check {
+    background: var(--success);
+    color: white;
+}
+
+.btn-upload {
+    background: var(--light);
+    color: var(--dark);
+    border: 2px dashed var(--gray);
+    position: relative;
+}
+
+/* Barcode */
+.barcode-box {
+    text-align: center;
+    margin: 20px 0;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    border: 2px solid #f0f0f0;
+}
+
+.barcode {
+    max-width: 100%;
+    height: auto;
+}
+
+.info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+}
+
+.info p {
+    margin: 8px 0;
+    font-size: 0.95rem;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+}
+
+.actions .btn {
+    margin-bottom: 0;
+}
+
+/* Camera */
+.camera-box {
+    margin: 20px 0;
+}
+
+.camera-container {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+#camera {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #000;
+}
+
+.scan-guide {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    border: 3px solid var(--success);
+    border-radius: 10px;
+    box-shadow: 0 0 0 10000px rgba(0,0,0,0.5);
+}
+
+/* Manual Entry */
+.manual-box {
+    margin: 20px 0;
+}
+
+/* Results */
+.results {
+    margin-top: 20px;
+}
+
+.result-item {
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 4px solid;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.result-granted {
+    border-left-color: var(--success);
+    background: #f0f9f5;
+}
+
+.result-used {
+    border-left-color: var(--warning);
+    background: #fff9e6;
+}
+
+.result-invalid {
+    border-left-color: var(--danger);
+    background: #fee;
+}
+
+/* Toast Notification */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 20px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s;
+    max-width: 90%;
+    text-align: center;
+}
+
+.toast.show {
+    opacity: 1;
+}
+
+.toast.success {
+    background: var(--success);
+}
+
+.toast.error {
+    background: var(--danger);
+}
+
+.toast.warning {
+    background: var(--warning);
+    color: var(--dark);
+}
+
+/* Utility */
+.hidden {
+    display: none !important;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.scan-options {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.upload-option {
+    margin-top: 15px;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .content {
+        padding: 15px;
+    }
+    
+    .card {
+        padding: 15px;
+    }
+    
+    .stat-num {
+        font-size: 1.5rem;
+    }
+}
